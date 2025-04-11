@@ -18,7 +18,12 @@ export default function ManageBookings() {
 
     const fetchBookings = async () => {
         try {
-            const res = await axios.get("http://localhost:5000/api/bookings");
+            const token = localStorage.getItem("token"); // Lấy token từ localStorage
+            const res = await axios.get("http://localhost:5000/api/bookings", {
+                headers: {
+                    Authorization: `Bearer ${token}`, // Gửi token trong header
+                },
+            });
             const data = Array.isArray(res.data) ? res.data : []; // Đảm bảo dữ liệu là mảng
             setBookings(data);
         } catch (error) {
@@ -29,7 +34,16 @@ export default function ManageBookings() {
 
     const updateStatus = async (id: string, status: string) => {
         try {
-            await axios.put(`http://localhost:5000/api/bookings/${id}`, { status });
+            const token = localStorage.getItem("token");
+            await axios.put(
+                `http://localhost:5000/api/bookings/${id}`,
+                { status },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
             fetchBookings(); // Reload
         } catch {
             alert("Cập nhật trạng thái thất bại!");
@@ -39,7 +53,16 @@ export default function ManageBookings() {
     const cancelBooking = async (id: string) => {
         if (!confirm("Bạn có chắc muốn hủy đơn hàng này?")) return;
         try {
-            await axios.put(`http://localhost:5000/api/bookings/cancel/${id}`);
+            const token = localStorage.getItem("token");
+            await axios.put(
+                `http://localhost:5000/api/bookings/cancel/${id}`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
             fetchBookings(); // Tải lại danh sách đơn hàng
         } catch (err) {
             console.error("Lỗi khi hủy đơn hàng:", err);

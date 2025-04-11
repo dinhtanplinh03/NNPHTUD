@@ -75,3 +75,17 @@ exports.deleteService = async (req, res) => {
         res.status(500).json({ message: 'Xóa dịch vụ thất bại' });
     }
 };
+// Controller trả về danh sách dịch vụ
+exports.getServicesByCategory = async (req, res) => {
+    try {
+        const { categoryId } = req.params;
+
+        // Gọi service để lấy danh sách dịch vụ theo danh mục
+        const services = await serviceService.getServicesByCategory(categoryId);
+
+        res.status(200).json(services);
+    } catch (error) {
+        console.error('Lỗi khi lấy dịch vụ theo danh mục:', error.message);
+        res.status(500).json({ message: error.message });
+    }
+};

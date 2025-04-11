@@ -19,4 +19,6 @@ router.put('/:id', authMiddleware, roleMiddleware('admin'), serviceController.up
 // DELETE /api/services/:id - Xóa dịch vụ (Chỉ admin)
 router.delete('/:id', authMiddleware, roleMiddleware('admin'), serviceController.deleteService);
 
+// Route lấy danh sách dịch vụ theo danh mục
+router.get('/category/:categoryId', serviceController.getServicesByCategory);
 module.exports = router;

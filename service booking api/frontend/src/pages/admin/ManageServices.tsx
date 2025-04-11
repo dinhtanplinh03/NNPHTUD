@@ -27,6 +27,7 @@ export default function ManageServices() {
         category: "",
         thumbnail: "",
     });
+    const [editingService, setEditingService] = useState<Service | null>(null); // Dịch vụ đang chỉnh sửa
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
     useEffect(() => {
@@ -36,23 +37,29 @@ export default function ManageServices() {
 
     const fetchServices = async () => {
         try {
-            const res = await axios.get("http://localhost:5000/api/services");
-            const data = Array.isArray(res.data) ? res.data : [];
-            setServices(data);
+            const token = localStorage.getItem("token");
+            const res = await axios.get("http://localhost:5000/api/services", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setServices(res.data);
         } catch (error) {
             console.error("Lỗi tải dịch vụ:", error);
-            setServices([]);
         }
     };
 
     const fetchCategories = async () => {
         try {
-            const res = await axios.get("http://localhost:5000/api/categories");
-            const data = Array.isArray(res.data) ? res.data : [];
-            setCategories(data);
+            const token = localStorage.getItem("token");
+            const res = await axios.get("http://localhost:5000/api/categories", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setCategories(res.data);
         } catch (error) {
             console.error("Lỗi tải danh mục:", error);
-            setCategories([]);
         }
     };
 
@@ -63,27 +70,36 @@ export default function ManageServices() {
         }
 
         try {
+            const token = localStorage.getItem("token");
             let thumbnailUrl = "";
 
-            // Nếu người dùng chọn tệp, tải tệp lên server
             if (selectedFile) {
                 const formData = new FormData();
                 formData.append("file", selectedFile);
 
                 const uploadRes = await axios.post("http://localhost:5000/api/upload", formData, {
-                    headers: { "Content-Type": "multipart/form-data" },
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
 
-                thumbnailUrl = uploadRes.data.url; // URL của hình ảnh sau khi tải lên
+                thumbnailUrl = uploadRes.data.url;
             }
 
-            // Thêm dịch vụ với URL hình ảnh
-            await axios.post("http://localhost:5000/api/services", {
-                ...newService,
-                thumbnail: thumbnailUrl,
-            });
+            await axios.post(
+                "http://localhost:5000/api/services",
+                {
+                    ...newService,
+                    thumbnail: thumbnailUrl,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
-            // Reset form và trạng thái
             setNewService({
                 name: "",
                 description: "",
@@ -92,8 +108,8 @@ export default function ManageServices() {
                 category: "",
                 thumbnail: "",
             });
-            setSelectedFile(null); // Reset file
-            fetchServices(); // Tải lại danh sách dịch vụ
+            setSelectedFile(null);
+            fetchServices();
         } catch (err) {
             console.error("Lỗi khi thêm dịch vụ:", err);
             alert("Thêm dịch vụ thất bại!");
@@ -103,7 +119,12 @@ export default function ManageServices() {
     const deleteService = async (id: string) => {
         if (!confirm("Bạn có chắc muốn xóa dịch vụ này?")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/services/${id}`);
+            const token = localStorage.getItem("token");
+            await axios.delete(`http://localhost:5000/api/services/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             fetchServices();
         } catch (err) {
             console.error("Lỗi khi xóa dịch vụ:", err);
@@ -111,52 +132,175 @@ export default function ManageServices() {
         }
     };
 
+    const handleEdit = (service: Service) => {
+        setEditingService(service);
+    };
+
+    const updateService = async () => {
+        if (!editingService) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            let thumbnailUrl = editingService.thumbnail || "";
+
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append("file", selectedFile);
+
+                const uploadRes = await axios.post("http://localhost:5000/api/upload", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+                thumbnailUrl = uploadRes.data.url;
+            }
+
+            await axios.put(
+                `http://localhost:5000/api/services/${editingService._id}`,
+                {
+                    ...editingService,
+                    thumbnail: thumbnailUrl,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            setEditingService(null);
+            setSelectedFile(null);
+            fetchServices();
+        } catch (err) {
+            console.error("Lỗi khi cập nhật dịch vụ:", err);
+            alert("Cập nhật dịch vụ thất bại!");
+        }
+    };
+
     return (
         <div style={{ padding: "1rem" }}>
             <h2>Quản lý Dịch vụ</h2>
 
-            <div style={{ marginTop: "1rem" }}>
-                <h3>Thêm Dịch vụ</h3>
-                <input
-                    placeholder="Tên"
-                    value={newService.name}
-                    onChange={e => setNewService({ ...newService, name: e.target.value })}
-                />
-                <input
-                    placeholder="Mô tả"
-                    value={newService.description}
-                    onChange={e => setNewService({ ...newService, description: e.target.value })}
-                />
-                <input
-                    type="number"
-                    placeholder="Giá"
-                    value={newService.price}
-                    onChange={e => setNewService({ ...newService, price: Number(e.target.value) })}
-                />
-                <input
-                    type="number"
-                    placeholder="Thời gian (phút)"
-                    value={newService.duration}
-                    onChange={e => setNewService({ ...newService, duration: Number(e.target.value) })}
-                />
-                <select
-                    value={newService.category}
-                    onChange={e => setNewService({ ...newService, category: e.target.value })}
-                >
-                    <option value="">Chọn danh mục</option>
-                    {categories.map(category => (
-                        <option key={category._id} value={category._id}>
-                            {category.name}
-                        </option>
-                    ))}
-                </select>
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => setSelectedFile(e.target.files ? e.target.files[0] : null)}
-                />
-                <button onClick={addService}>Thêm</button>
-            </div>
+            {editingService ? (
+                <div>
+                    <h3>Sửa Dịch vụ</h3>
+                    <input
+                        placeholder="Tên"
+                        value={editingService.name}
+                        onChange={(e) =>
+                            setEditingService({ ...editingService, name: e.target.value })
+                        }
+                    />
+                    <input
+                        placeholder="Mô tả"
+                        value={editingService.description}
+                        onChange={(e) =>
+                            setEditingService({ ...editingService, description: e.target.value })
+                        }
+                    />
+                    <input
+                        type="number"
+                        placeholder="Giá"
+                        value={editingService.price}
+                        onChange={(e) =>
+                            setEditingService({
+                                ...editingService,
+                                price: Number(e.target.value),
+                            })
+                        }
+                    />
+                    <input
+                        type="number"
+                        placeholder="Thời gian (phút)"
+                        value={editingService.duration}
+                        onChange={(e) =>
+                            setEditingService({
+                                ...editingService,
+                                duration: Number(e.target.value),
+                            })
+                        }
+                    />
+                    <select
+                        value={editingService.category}
+                        onChange={(e) =>
+                            setEditingService({ ...editingService, category: e.target.value })
+                        }
+                    >
+                        <option value="">Chọn danh mục</option>
+                        {categories.map((category) => (
+                            <option key={category._id} value={category._id}>
+                                {category.name}
+                            </option>
+                        ))}
+                    </select>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                            setSelectedFile(e.target.files ? e.target.files[0] : null)
+                        }
+                    />
+                    <button onClick={updateService}>Lưu</button>
+                    <button onClick={() => setEditingService(null)}>Hủy</button>
+                </div>
+            ) : (
+                <div>
+                    <h3>Thêm Dịch vụ</h3>
+                    <input
+                        placeholder="Tên"
+                        value={newService.name}
+                        onChange={(e) =>
+                            setNewService({ ...newService, name: e.target.value })
+                        }
+                    />
+                    <input
+                        placeholder="Mô tả"
+                        value={newService.description}
+                        onChange={(e) =>
+                            setNewService({ ...newService, description: e.target.value })
+                        }
+                    />
+                    <input
+                        type="number"
+                        placeholder="Giá"
+                        value={newService.price}
+                        onChange={(e) =>
+                            setNewService({ ...newService, price: Number(e.target.value) })
+                        }
+                    />
+                    <input
+                        type="number"
+                        placeholder="Thời gian (phút)"
+                        value={newService.duration}
+                        onChange={(e) =>
+                            setNewService({ ...newService, duration: Number(e.target.value) })
+                        }
+                    />
+                    <select
+                        value={newService.category}
+                        onChange={(e) =>
+                            setNewService({ ...newService, category: e.target.value })
+                        }
+                    >
+                        <option value="">Chọn danh mục</option>
+                        {categories.map((category) => (
+                            <option key={category._id} value={category._id}>
+                                {category.name}
+                            </option>
+                        ))}
+                    </select>
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                            setSelectedFile(e.target.files ? e.target.files[0] : null)
+                        }
+                    />
+                    <button onClick={addService}>Thêm</button>
+                </div>
+            )}
 
             <table border={1} cellPadding={8} style={{ marginTop: "1rem", width: "100%" }}>
                 <thead>
@@ -171,22 +315,34 @@ export default function ManageServices() {
                     </tr>
                 </thead>
                 <tbody>
-                    {Array.isArray(services) && services.map(s => (
+                    {services.map((s) => (
                         <tr key={s._id}>
                             <td>{s.name}</td>
                             <td>{s.description}</td>
                             <td>{s.price} VND</td>
                             <td>{s.duration} phút</td>
-                            <td>{categories.find(c => c._id === s.category)?.name || "Không rõ"}</td>
+                            <td>
+                                {categories.find((c) => c._id === s.category)?.name || "Không rõ"}
+                            </td>
                             <td>
                                 {s.thumbnail ? (
-                                    <img src={s.thumbnail} alt={s.name} style={{ width: "50px", height: "50px" }} />
+                                    <img
+                                        src={s.thumbnail}
+                                        alt={s.name}
+                                        style={{ width: "50px", height: "50px" }}
+                                    />
                                 ) : (
                                     "Không có ảnh"
                                 )}
                             </td>
                             <td>
-                                <button style={{ color: "red" }} onClick={() => deleteService(s._id!)}>Xóa</button>
+                                <button onClick={() => handleEdit(s)}>Sửa</button>
+                                <button
+                                    style={{ color: "red" }}
+                                    onClick={() => deleteService(s._id!)}
+                                >
+                                    Xóa
+                                </button>
                             </td>
                         </tr>
                     ))}

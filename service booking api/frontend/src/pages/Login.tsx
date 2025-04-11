@@ -9,6 +9,7 @@ function Login() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            console.log("Đang gửi:", { email, password }); // Log dữ liệu gửi đi
             const res = await axios.post("http://localhost:5000/api/users/login", {
                 email,
                 password,
@@ -22,8 +23,10 @@ function Login() {
             window.location.href = "/"; // chuyển về trang chủ
         } catch (error: unknown) {
             if (axios.isAxiosError(error)) {
+                console.error("Lỗi từ server:", error.response?.data); // Log lỗi từ server
                 alert(error.response?.data?.message || "Đăng nhập thất bại!");
             } else {
+                console.error("Lỗi không xác định:", error);
                 alert("Có lỗi xảy ra!");
             }
         }

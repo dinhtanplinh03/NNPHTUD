@@ -6,7 +6,7 @@ interface User {
     name: string;
     email: string;
     role: string;
-    isBlocked: boolean; // Thêm trạng thái khóa
+    isBlocked: boolean; // Trạng thái khóa
 }
 
 const ManageUsers = () => {
@@ -14,13 +14,32 @@ const ManageUsers = () => {
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [name, setName] = useState("");
     const [role, setRole] = useState("");
+    const [loading, setLoading] = useState(false); // Trạng thái đang tải
 
     const fetchUsers = async () => {
+        setLoading(true);
         try {
-            const res = await axios.get("http://localhost:5000/api/users");
+            const token = localStorage.getItem("token"); // Lấy token từ localStorage
+            const res = await axios.get("http://localhost:5000/api/users", {
+                headers: {
+                    Authorization: `Bearer ${token}`, // Gửi token trong header
+                },
+            });
             setUsers(res.data);
         } catch (error) {
             console.error("Lỗi khi lấy danh sách người dùng:", error);
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 401) {
+                    alert("Bạn không có quyền truy cập. Vui lòng đăng nhập lại.");
+                    window.location.href = "/login"; // Chuyển hướng đến trang đăng nhập
+                } else if (error.response?.status === 403) {
+                    alert("Bạn không có quyền thực hiện thao tác này.");
+                } else {
+                    alert("Lỗi server. Vui lòng thử lại sau.");
+                }
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -28,13 +47,25 @@ const ManageUsers = () => {
         fetchUsers();
     }, []);
 
-    const handleBlock = async (id: string) => {
-        if (confirm("Bạn có chắc chắn muốn khóa người dùng này không?")) {
+    const handleBlock = async (id: string, isBlocked: boolean) => {
+        const action = isBlocked ? "mở khóa" : "khóa";
+        if (confirm(`Bạn có chắc chắn muốn ${action} người dùng này không?`)) {
             try {
-                await axios.put(`http://localhost:5000/api/users/block/${id}`);
+                const token = localStorage.getItem("token");
+                await axios.put(
+                    `http://localhost:5000/api/users/${isBlocked ? "unblock" : "block"}/${id}`,
+                    {},
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+                alert(`${action.charAt(0).toUpperCase() + action.slice(1)} người dùng thành công!`);
                 fetchUsers(); // Refresh danh sách
-            } catch {
-                alert("Khóa thất bại!");
+            } catch (error) {
+                console.error(`Lỗi khi ${action} người dùng:`, error);
+                alert(`${action.charAt(0).toUpperCase() + action.slice(1)} thất bại!`);
             }
         }
     };
@@ -48,13 +79,21 @@ const ManageUsers = () => {
     const handleUpdate = async () => {
         if (!editingUser) return;
         try {
-            await axios.put(`http://localhost:5000/api/users/${editingUser._id}`, {
-                name,
-                role,
-            });
+            const token = localStorage.getItem("token");
+            await axios.put(
+                `http://localhost:5000/api/users/${editingUser._id}`,
+                { name, role },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+            alert("Cập nhật người dùng thành công!");
             setEditingUser(null);
             fetchUsers();
-        } catch {
+        } catch (error) {
+            console.error("Lỗi khi cập nhật người dùng:", error);
             alert("Cập nhật thất bại!");
         }
     };
@@ -62,6 +101,8 @@ const ManageUsers = () => {
     return (
         <div style={{ padding: "2rem" }}>
             <h2>Quản lý người dùng</h2>
+
+            {loading && <p>Đang tải dữ liệu...</p>}
 
             {editingUser && (
                 <div style={{ marginBottom: "1rem", background: "#f9f9f9", padding: "1rem" }}>
@@ -76,8 +117,12 @@ const ManageUsers = () => {
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
                     </select>
-                    <button onClick={handleUpdate} style={{ marginLeft: "1rem" }}>Lưu</button>
-                    <button onClick={() => setEditingUser(null)} style={{ marginLeft: "0.5rem" }}>Hủy</button>
+                    <button onClick={handleUpdate} style={{ marginLeft: "1rem" }}>
+                        Lưu
+                    </button>
+                    <button onClick={() => setEditingUser(null)} style={{ marginLeft: "0.5rem" }}>
+                        Hủy
+                    </button>
                 </div>
             )}
 
@@ -102,8 +147,11 @@ const ManageUsers = () => {
                             <td>{user.isBlocked ? "Đã khóa" : "Hoạt động"}</td>
                             <td>
                                 <button onClick={() => handleEdit(user)}>Sửa</button>
-                                <button onClick={() => handleBlock(user._id)} style={{ marginLeft: "0.5rem" }}>
-                                    Khóa
+                                <button
+                                    onClick={() => handleBlock(user._id, user.isBlocked)}
+                                    style={{ marginLeft: "0.5rem" }}
+                                >
+                                    {user.isBlocked ? "Mở khóa" : "Khóa"}
                                 </button>
                             </td>
                         </tr>

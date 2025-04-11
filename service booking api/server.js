@@ -54,13 +54,12 @@ app.get('/api/uploads', authMiddleware, (req, res) => {
 
 // Routes yêu cầu xác thực
 app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/services', authMiddleware, require('./routes/serviceRoutes'));
+app.use('/api/services', require('./routes/serviceRoutes'));
 app.use('/api/bookings', authMiddleware, require('./routes/bookingRoutes'));
-
-// Routes yêu cầu phân quyền (chỉ admin)
-app.use('/api/staffs', authMiddleware, roleMiddleware('admin'), require('./routes/staffRoutes'));
-app.use('/api/categories', authMiddleware, roleMiddleware('admin'), require('./routes/categoryRoutes'));
+app.use('/api/staffs', require('./routes/staffRoutes'));
+app.use('/api/categories', require('./routes/categoryRoutes'));
 app.use('/api/payments', authMiddleware, require('./routes/paymentRoutes'));
+app.use('/api/feedbacks', require('./routes/feedbackRoutes'));
 
 // Khởi động server
 const PORT = process.env.PORT || 5000;

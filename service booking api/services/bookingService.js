@@ -1,17 +1,20 @@
 const Booking = require('../models/booking');
 
 exports.createBooking = async (data) => {
-    const { userId, serviceId, date, time, note } = data;
+    const { userId, serviceId, date, time, note, staffId } = data;
 
+    // Kiểm tra thông tin bắt buộc
     if (!userId || !serviceId || !date || !time) {
         throw new Error("Thiếu thông tin đặt lịch");
     }
 
     const bookingDate = new Date(`${date}T${time}`);
 
+    // Tạo đối tượng đặt lịch mới
     const newBooking = new Booking({
         user: userId,
         service: serviceId,
+        staff: staffId || null, // Thêm staffId nếu có, nếu không thì null
         bookingDate,
         note: note || "",
     });

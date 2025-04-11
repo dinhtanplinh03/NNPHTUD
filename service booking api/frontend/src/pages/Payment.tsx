@@ -38,25 +38,43 @@ const Payment = () => {
             return;
         }
 
-        const updatedStatus = paymentMethod === "cash" ? "confirmed" : "pending";
+        if (paymentMethod === "card") {
+            alert("Tính năng đang được phát triển, vui lòng thử lại sau.");
+            return;
+        }
 
-        // Cập nhật trạng thái booking khi chọn thanh toán
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("Bạn phải đăng nhập để thực hiện thanh toán.");
+            navigate("/login");
+            return;
+        }
+
+        const updatedStatus = "confirmed";
+
         try {
-            const res = await axios.put(`http://localhost:5000/api/bookings/${booking._id}`, {
-                status: updatedStatus
-            });
+            const res = await axios.put(
+                `http://localhost:5000/api/bookings/${booking._id}`,
+                { status: updatedStatus },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
 
             if (res.status === 200) {
                 alert("Thanh toán thành công!");
-                navigate("/thank-you"); // Điều hướng tới trang cảm ơn
+                navigate("/thank-you");
             } else {
                 alert("Có lỗi xảy ra!");
             }
         } catch (err) {
-            console.error(err);
+            console.error("Lỗi khi thanh toán:", err);
             alert("Có lỗi khi thanh toán.");
         }
     };
+
 
     return (
         <div className="payment-container" style={{ maxWidth: "600px", margin: "2rem auto", padding: "2rem", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>

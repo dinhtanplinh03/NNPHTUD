@@ -6,8 +6,9 @@ exports.createBooking = async (req, res) => {
     try {
         const booking = await bookingService.createBooking(req.body);
         res.status(201).json(booking);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+    } catch (error) {
+        console.error("Lỗi khi tạo booking:", error.message);
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -29,12 +30,25 @@ exports.getBookingsByUser = async (req, res) => {
     }
 };
 
-exports.updateBookingStatus = async (req, res) => {
+exports.updateBooking = async (req, res) => {
     try {
-        const booking = await bookingService.updateBookingStatus(req.params.id, req.body.status);
-        res.status(200).json(booking);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const updatedBooking = await Booking.findByIdAndUpdate(
+            id,
+            { status },
+            { new: true }
+        );
+
+        if (!updatedBooking) {
+            return res.status(404).json({ message: 'Không tìm thấy booking' });
+        }
+
+        res.status(200).json(updatedBooking);
+    } catch (error) {
+        console.error('Lỗi khi cập nhật booking:', error.message);
+        res.status(500).json({ message: 'Lỗi server' });
     }
 };
 

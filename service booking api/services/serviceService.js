@@ -83,3 +83,19 @@ exports.deleteService = async (req, res) => {
         res.status(500).json({ message: 'Xóa dịch vụ thất bại' });
     }
 };
+// Controller trả về danh sách dịch vụ
+exports.getServicesByCategory = async (categoryId) => {
+    try {
+        // Kiểm tra ID danh mục hợp lệ
+        if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+            throw new Error('ID danh mục không hợp lệ');
+        }
+
+        // Lấy danh sách dịch vụ theo danh mục
+        const services = await Service.find({ category: categoryId });
+        return services;
+    } catch (error) {
+        console.error('Lỗi khi lấy dịch vụ theo danh mục:', error.message);
+        throw new Error('Không thể lấy danh sách dịch vụ theo danh mục');
+    }
+};

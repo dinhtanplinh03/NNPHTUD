@@ -1,29 +1,68 @@
 const userService = require('../services/userService');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
+const bcrypt = require('bcryptjs');
 
 exports.register = async (req, res) => {
     try {
-        const result = await userService.register(req.body);
-        res.status(201).json(result);
+        const { name, email, password, phone } = req.body;
+
+        // Kiểm tra dữ liệu đầu vào
+        if (!name || !email || !password || !phone) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin' });
+        }
+
+        // Kiểm tra email đã tồn tại chưa
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Email đã được sử dụng' });
+        }
+
+        // Hash mật khẩu
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Tạo user mới
+        const newUser = new User({
+            name,
+            email,
+            phone,
+            password: hashedPassword,
+        });
+
+        await newUser.save();
+
+        res.status(201).json({
+            message: "Đăng ký thành công",
+            user: {
+                id: newUser._id,
+                email: newUser.email,
+                name: newUser.name,
+            },
+        });
     } catch (error) {
-        console.error('Lỗi khi đăng ký:', error.message);
-        res.status(400).json({ message: error.message });
+        console.error("Lỗi khi đăng ký:", error.message);
+        res.status(500).json({ message: 'Lỗi server' });
     }
 };
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
+    console.log("Dữ liệu nhận được:", { email, password }); // Log dữ liệu nhận được
 
     try {
-        // Kiểm tra email
+        // Kiểm tra dữ liệu đầu vào
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Vui lòng cung cấp email và mật khẩu' });
+        }
+
+        // Tìm người dùng theo email
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(401).json({ message: 'Email không tồn tại' });
         }
 
-        // Kiểm tra mật khẩu
-        const isMatch = await user.matchPassword(password); // matchPassword là hàm kiểm tra mật khẩu
+        // So sánh mật khẩu
+        const isMatch = await bcrypt.compare(password, user.password); // So sánh mật khẩu gốc với hash
         if (!isMatch) {
             return res.status(401).json({ message: 'Mật khẩu không đúng' });
         }
@@ -40,7 +79,7 @@ exports.login = async (req, res) => {
             token,
         });
     } catch (error) {
-        console.error('Lỗi khi đăng nhập:', error);
+        console.error("Lỗi server:", error.message);
         res.status(500).json({ message: 'Lỗi server' });
     }
 };

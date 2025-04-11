@@ -7,14 +7,14 @@ interface Service {
     name: string;
     description: string;
     price: number;
-    duration?: number; // nếu có
+    duration: number; // nếu có
 }
 
 interface Feedback {
     _id: string;
-    user: string;
+    user: string | { _id?: string; name: string };
     service: string;
-    staff?: string;
+    staff?: string | { _id: string; name: string };
     rating: number;
     comment: string;
     createdAt: string;
@@ -27,9 +27,13 @@ const ServiceDetail = () => {
     const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
     const [feedbackContent, setFeedbackContent] = useState("");
     const [rating, setRating] = useState(5); // Đánh giá mặc định là 5 sao
-    const [staff, setStaff] = useState<string | null>(null); // Optional field for staff
+    const [staffs, setStaffs] = useState<{ _id: string; name: string }[]>([]);
+    const [selectedStaff, setSelectedStaff] = useState<string>("");
+    const [editingFeedback, setEditingFeedback] = useState<Feedback | null>(null);
+    const user = JSON.parse(localStorage.getItem("user") || "null");
 
     useEffect(() => {
+        // Lấy thông tin chi tiết dịch vụ
         axios.get(`http://localhost:5000/api/services/${id}`)
             .then(res => setService(res.data))
             .catch(err => console.error("Lỗi khi tải chi tiết dịch vụ:", err));
@@ -38,6 +42,22 @@ const ServiceDetail = () => {
         axios.get(`http://localhost:5000/api/feedbacks?serviceId=${id}`)
             .then(res => setFeedbacks(res.data))
             .catch(err => console.error("Lỗi khi tải feedback:", err));
+
+        // Lấy danh sách nhân viên
+        axios.get("http://localhost:5000/api/staffs", {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`, // Gửi token từ localStorage
+            },
+        })
+            .then(res => setStaffs(res.data))
+            .catch(err => {
+                if (err.response && err.response.status === 401) {
+                    alert("Bạn không có quyền truy cập danh sách nhân viên. Vui lòng đăng nhập lại.");
+                    navigate("/login");
+                } else {
+                    console.error("Lỗi khi tải danh sách nhân viên:", err);
+                }
+            });
     }, [id]);
 
     const handleFeedbackSubmit = (e: React.FormEvent) => {
@@ -54,7 +74,7 @@ const ServiceDetail = () => {
             user: user.id,
             rating,
             comment: feedbackContent,
-            staff, // Chọn nhân viên nếu có (optional)
+            staff: selectedStaff || null, // Gửi ID của nhân viên nếu có
         };
 
         axios.post("http://localhost:5000/api/feedbacks", feedbackData)
@@ -62,9 +82,47 @@ const ServiceDetail = () => {
                 setFeedbacks([...feedbacks, res.data]); // Thêm feedback mới vào danh sách
                 setFeedbackContent(""); // Làm sạch form feedback
                 setRating(5); // Reset rating
-                setStaff(null); // Reset staff selection
+                setSelectedStaff(""); // Reset staff selection
             })
             .catch((err) => console.error("Lỗi khi gửi phản hồi:", err));
+    };
+
+    const handleEditFeedback = (feedback: Feedback) => {
+        setEditingFeedback(feedback);
+        setFeedbackContent(feedback.comment);
+        setRating(feedback.rating);
+        setSelectedStaff(feedback.staff ? (typeof feedback.staff === "object" ? feedback.staff._id : feedback.staff) : "");
+    };
+
+    const handleUpdateFeedback = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingFeedback) return;
+
+        const updatedFeedbackData = {
+            rating,
+            comment: feedbackContent,
+            staff: selectedStaff || null,
+        };
+
+        axios.put(`http://localhost:5000/api/feedbacks/${editingFeedback._id}`, updatedFeedbackData)
+            .then((res) => {
+                setFeedbacks(feedbacks.map((fb) => (fb._id === editingFeedback._id ? res.data : fb)));
+                setEditingFeedback(null);
+                setFeedbackContent("");
+                setRating(5);
+                setSelectedStaff("");
+            })
+            .catch((err) => console.error("Lỗi khi cập nhật phản hồi:", err));
+    };
+
+    const handleDeleteFeedback = (id: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa phản hồi này?")) return;
+
+        axios.delete(`http://localhost:5000/api/feedbacks/${id}`)
+            .then(() => {
+                setFeedbacks(feedbacks.filter((fb) => fb._id !== id));
+            })
+            .catch((err) => console.error("Lỗi khi xóa phản hồi:", err));
     };
 
     if (!service) {
@@ -79,13 +137,9 @@ const ServiceDetail = () => {
             <p><strong>Mô tả:</strong></p>
             <p>{service.description}</p>
 
-            <button onClick={() => navigate("/booking")} style={{ marginTop: "1rem" }}>
-                Đặt ngay
-            </button>
-
             <h3>Phản hồi về dịch vụ</h3>
 
-            <form onSubmit={handleFeedbackSubmit} style={{ marginTop: "1rem" }}>
+            <form onSubmit={editingFeedback ? handleUpdateFeedback : handleFeedbackSubmit} style={{ marginTop: "1rem" }}>
                 <textarea
                     placeholder="Viết phản hồi của bạn..."
                     value={feedbackContent}
@@ -105,15 +159,21 @@ const ServiceDetail = () => {
                 </div>
                 <div>
                     <label>Chọn nhân viên (tuỳ chọn): </label>
-                    <input
-                        type="text"
-                        placeholder="Nhập tên nhân viên"
-                        value={staff || ""}
-                        onChange={(e) => setStaff(e.target.value)}
-                    />
+                    <select
+                        value={selectedStaff}
+                        onChange={(e) => setSelectedStaff(e.target.value)}
+                        style={{ width: "100%", padding: "0.5rem" }}
+                    >
+                        <option value="">-- Chọn nhân viên --</option>
+                        {staffs.map((staff) => (
+                            <option key={staff._id} value={staff._id}>
+                                {staff.name}
+                            </option>
+                        ))}
+                    </select>
                 </div>
                 <button type="submit" style={{ marginTop: "1rem" }}>
-                    Gửi phản hồi
+                    {editingFeedback ? "Cập nhật phản hồi" : "Gửi phản hồi"}
                 </button>
             </form>
 
@@ -125,10 +185,26 @@ const ServiceDetail = () => {
                     <ul>
                         {feedbacks.map((feedback) => (
                             <li key={feedback._id} style={{ marginBottom: "1rem" }}>
-                                <strong>{feedback.user}</strong> ({new Date(feedback.createdAt).toLocaleString()})
+                                <strong>
+                                    {feedback.user && typeof feedback.user === "object" ? feedback.user.name : feedback.user}
+                                </strong>
+                                ({new Date(feedback.createdAt).toLocaleString()})
                                 <div>{'⭐'.repeat(feedback.rating)}</div>
                                 <p>{feedback.comment}</p>
-                                {feedback.staff && <p><strong>Nhân viên:</strong> {feedback.staff}</p>}
+                                {feedback.staff && (
+                                    <p>
+                                        <strong>Nhân viên:</strong>{" "}
+                                        {typeof feedback.staff === "object" ? feedback.staff.name : feedback.staff}
+                                    </p>
+                                )}
+                                {user && feedback.user && typeof feedback.user === "object" && feedback.user._id === user.id && (
+                                    <>
+                                        <button onClick={() => handleEditFeedback(feedback)} style={{ marginRight: "0.5rem" }}>
+                                            Sửa
+                                        </button>
+                                        <button onClick={() => handleDeleteFeedback(feedback._id)}>Xóa</button>
+                                    </>
+                                )}
                             </li>
                         ))}
                     </ul>

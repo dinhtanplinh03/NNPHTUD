@@ -18,7 +18,12 @@ export default function ManageCategories() {
 
     const fetchCategories = async () => {
         try {
-            const res = await axios.get("http://localhost:5000/api/categories");
+            const token = localStorage.getItem("token"); // Lấy token từ localStorage
+            const res = await axios.get("http://localhost:5000/api/categories", {
+                headers: {
+                    Authorization: `Bearer ${token}`, // Gửi token trong header
+                },
+            });
             const data = Array.isArray(res.data) ? res.data : [];
             setCategories(data);
             setError(null);
@@ -35,7 +40,16 @@ export default function ManageCategories() {
             return;
         }
         try {
-            await axios.post("http://localhost:5000/api/categories", { name: newCategory });
+            const token = localStorage.getItem("token");
+            await axios.post(
+                "http://localhost:5000/api/categories",
+                { name: newCategory },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
             setNewCategory("");
             fetchCategories();
         } catch (err) {
@@ -47,7 +61,12 @@ export default function ManageCategories() {
     const deleteCategory = async (id: string) => {
         if (!confirm("Bạn có chắc muốn xóa danh mục này?")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/categories/${id}`);
+            const token = localStorage.getItem("token");
+            await axios.delete(`http://localhost:5000/api/categories/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             fetchCategories();
         } catch (err) {
             console.error("Lỗi khi xóa danh mục:", err);
@@ -69,9 +88,16 @@ export default function ManageCategories() {
             return;
         }
         try {
-            await axios.put(`http://localhost:5000/api/categories/${editingCategory._id}`, {
-                name: editingCategory.name,
-            });
+            const token = localStorage.getItem("token");
+            await axios.put(
+                `http://localhost:5000/api/categories/${editingCategory._id}`,
+                { name: editingCategory.name },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
             setEditingCategory(null);
             fetchCategories();
         } catch (err) {

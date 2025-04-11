@@ -27,15 +27,23 @@ const StaffManagement = () => {
     const [editStaff, setEditStaff] = useState<Staff | null>(null);
 
     useEffect(() => {
-        // Fetch all staff list from the API
-        axios.get("http://localhost:5000/api/staffs")
-            .then((res) => {
-                setStaffList(res.data);
-            })
-            .catch((err) => {
-                console.error("Error fetching staff:", err);
-            });
+        fetchStaffList();
     }, []);
+
+    const fetchStaffList = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await axios.get("http://localhost:5000/api/staffs", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setStaffList(res.data);
+        } catch (err) {
+            console.error("Lỗi khi tải danh sách nhân viên:", err);
+            alert("Không thể tải danh sách nhân viên. Vui lòng thử lại sau.");
+        }
+    };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -50,49 +58,45 @@ const StaffManagement = () => {
         setNewStaff({ ...newStaff, workingDays: newWorkingDays });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const token = localStorage.getItem("token");
+
         if (editStaff) {
             // Update staff
-            axios.put(`http://localhost:5000/api/staffs/${editStaff._id}`, newStaff)
-                .then((res) => {
-                    alert("Cập nhật nhân viên thành công!");
-                    setStaffList(staffList.map(staff => staff._id === editStaff._id ? res.data : staff));
-                    setEditStaff(null);
-                    setNewStaff({
-                        _id: "",
-                        name: "",
-                        phone: "",
-                        email: "",
-                        avatar: "",
-                        specialization: "",
-                        workingDays: [],
-                        isActive: true,
-                    });
-                })
-                .catch((err) => {
-                    console.error("Lỗi khi cập nhật nhân viên:", err);
-                });
+            try {
+                const res = await axios.put(
+                    `http://localhost:5000/api/staffs/${editStaff._id}`,
+                    newStaff,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+                alert("Cập nhật nhân viên thành công!");
+                setStaffList(staffList.map(staff => (staff._id === editStaff._id ? res.data : staff)));
+                setEditStaff(null);
+                resetForm();
+            } catch (err) {
+                console.error("Lỗi khi cập nhật nhân viên:", err);
+                alert("Cập nhật nhân viên thất bại!");
+            }
         } else {
             // Add new staff
-            axios.post("http://localhost:5000/api/staffs", newStaff)
-                .then((res) => {
-                    alert("Thêm nhân viên mới thành công!");
-                    setStaffList([...staffList, res.data]);
-                    setNewStaff({
-                        _id: "",
-                        name: "",
-                        phone: "",
-                        email: "",
-                        avatar: "",
-                        specialization: "",
-                        workingDays: [],
-                        isActive: true,
-                    });
-                })
-                .catch((err) => {
-                    console.error("Lỗi khi thêm nhân viên:", err);
+            try {
+                const res = await axios.post("http://localhost:5000/api/staffs", newStaff, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
                 });
+                alert("Thêm nhân viên mới thành công!");
+                setStaffList([...staffList, res.data]);
+                resetForm();
+            } catch (err) {
+                console.error("Lỗi khi thêm nhân viên:", err);
+                alert("Thêm nhân viên thất bại!");
+            }
         }
     };
 
@@ -101,17 +105,36 @@ const StaffManagement = () => {
         setNewStaff(staff);
     };
 
-    const handleDelete = (staffId: string) => {
-        if (window.confirm("Bạn có chắc chắn muốn xóa nhân viên này?")) {
-            axios.delete(`http://localhost:5000/api/staffs/${staffId}`)
-                .then(() => {
-                    setStaffList(staffList.filter(staff => staff._id !== staffId));
-                    alert("Nhân viên đã bị xóa.");
-                })
-                .catch((err) => {
-                    console.error("Lỗi khi xóa nhân viên:", err);
-                });
+    const handleDelete = async (staffId: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa nhân viên này?")) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            await axios.delete(`http://localhost:5000/api/staffs/${staffId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            setStaffList(staffList.filter(staff => staff._id !== staffId));
+            alert("Nhân viên đã bị xóa.");
+        } catch (err) {
+            console.error("Lỗi khi xóa nhân viên:", err);
+            alert("Xóa nhân viên thất bại!");
         }
+    };
+
+    const resetForm = () => {
+        setNewStaff({
+            _id: "",
+            name: "",
+            phone: "",
+            email: "",
+            avatar: "",
+            specialization: "",
+            workingDays: [],
+            isActive: true,
+        });
+        setEditStaff(null);
     };
 
     return (
@@ -155,69 +178,17 @@ const StaffManagement = () => {
                     placeholder="Chuyên môn"
                 />
                 <div>
-                    <label>
-                        <input
-                            type="checkbox"
-                            value="Monday"
-                            checked={newStaff.workingDays.includes("Monday")}
-                            onChange={handleWorkingDaysChange}
-                        />
-                        Thứ Hai
-                    </label>
-                    <label>
-                        <input
-                            type="checkbox"
-                            value="Tuesday"
-                            checked={newStaff.workingDays.includes("Tuesday")}
-                            onChange={handleWorkingDaysChange}
-                        />
-                        Thứ Ba
-                    </label>
-                    <label>
-                        <input
-                            type="checkbox"
-                            value="Wednesday"
-                            checked={newStaff.workingDays.includes("Wednesday")}
-                            onChange={handleWorkingDaysChange}
-                        />
-                        Thứ Tư
-                    </label>
-                    <label>
-                        <input
-                            type="checkbox"
-                            value="Thursday"
-                            checked={newStaff.workingDays.includes("Thursday")}
-                            onChange={handleWorkingDaysChange}
-                        />
-                        Thứ Năm
-                    </label>
-                    <label>
-                        <input
-                            type="checkbox"
-                            value="Friday"
-                            checked={newStaff.workingDays.includes("Friday")}
-                            onChange={handleWorkingDaysChange}
-                        />
-                        Thứ Sáu
-                    </label>
-                    <label>
-                        <input
-                            type="checkbox"
-                            value="Saturday"
-                            checked={newStaff.workingDays.includes("Saturday")}
-                            onChange={handleWorkingDaysChange}
-                        />
-                        Thứ Bảy
-                    </label>
-                    <label>
-                        <input
-                            type="checkbox"
-                            value="Sunday"
-                            checked={newStaff.workingDays.includes("Sunday")}
-                            onChange={handleWorkingDaysChange}
-                        />
-                        Chủ Nhật
-                    </label>
+                    {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => (
+                        <label key={day}>
+                            <input
+                                type="checkbox"
+                                value={day}
+                                checked={newStaff.workingDays.includes(day)}
+                                onChange={handleWorkingDaysChange}
+                            />
+                            {day}
+                        </label>
+                    ))}
                 </div>
                 <button type="submit">{editStaff ? "Cập nhật Nhân viên" : "Thêm Nhân viên"}</button>
             </form>
