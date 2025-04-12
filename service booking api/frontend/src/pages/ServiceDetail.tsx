@@ -96,7 +96,10 @@ const ServiceDetail = () => {
 
     const handleUpdateFeedback = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!editingFeedback) return;
+        if (!editingFeedback) {
+            alert("Không có phản hồi nào để cập nhật.");
+            return;
+        }
 
         const updatedFeedbackData = {
             rating,
@@ -104,7 +107,13 @@ const ServiceDetail = () => {
             staff: selectedStaff || null,
         };
 
-        axios.put(`http://localhost:5000/api/feedbacks/${editingFeedback._id}`, updatedFeedbackData)
+        console.log("Dữ liệu gửi lên:", updatedFeedbackData);
+
+        axios.put(`http://localhost:5000/api/feedbacks/${editingFeedback._id}`, updatedFeedbackData, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+        })
             .then((res) => {
                 setFeedbacks(feedbacks.map((fb) => (fb._id === editingFeedback._id ? res.data : fb)));
                 setEditingFeedback(null);
@@ -112,30 +121,36 @@ const ServiceDetail = () => {
                 setRating(5);
                 setSelectedStaff("");
             })
-            .catch((err) => console.error("Lỗi khi cập nhật phản hồi:", err));
+            .catch((err) => {
+                console.error("Lỗi khi cập nhật phản hồi:", err.response?.data || err.message);
+                alert(err.response?.data?.message || "Cập nhật phản hồi thất bại!");
+            });
     };
 
     const handleDeleteFeedback = (id: string) => {
         if (!window.confirm("Bạn có chắc chắn muốn xóa phản hồi này?")) return;
 
-        axios.delete(`http://localhost:5000/api/feedbacks/${id}`)
+        axios.delete(`http://localhost:5000/api/feedbacks/${id}`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+        })
             .then(() => {
                 setFeedbacks(feedbacks.filter((fb) => fb._id !== id));
             })
-            .catch((err) => console.error("Lỗi khi xóa phản hồi:", err));
+            .catch((err) => {
+                console.error("Lỗi khi xóa phản hồi:", err.response?.data || err.message);
+                alert(err.response?.data?.message || "Xóa phản hồi thất bại!");
+            });
     };
-
-    if (!service) {
-        return <p>Đang tải dữ liệu...</p>;
-    }
 
     return (
         <div style={{ padding: "2rem" }}>
-            <h2>{service.name}</h2>
-            <p><strong>Giá:</strong> {service.price.toLocaleString()}₫</p>
-            {service.duration && <p><strong>Thời lượng:</strong> {service.duration} phút</p>}
+            <h2>{service?.name || "Dịch vụ không tồn tại"}</h2>
+            <p><strong>Giá:</strong> {service?.price?.toLocaleString() || "N/A"}₫</p>
+            {service?.duration && <p><strong>Thời lượng:</strong> {service.duration} phút</p>}
             <p><strong>Mô tả:</strong></p>
-            <p>{service.description}</p>
+            <p>{service?.description || "Mô tả không có sẵn"}</p>
 
             <h3>Phản hồi về dịch vụ</h3>
 

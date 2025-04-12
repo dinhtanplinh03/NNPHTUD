@@ -65,49 +65,54 @@ exports.getFeedbacksByStaff = async (req, res) => {
 
 exports.updateFeedback = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params; // feedbackId từ đường dẫn
         const { rating, comment, staff } = req.body;
 
+        // Tìm phản hồi theo feedbackId
         const feedback = await Feedback.findById(id);
         if (!feedback) {
-            return res.status(404).json({ message: "Không tìm thấy phản hồi" });
+            return res.status(404).json({ message: 'Không tìm thấy phản hồi' });
         }
 
-        // Kiểm tra quyền
+        // Kiểm tra quyền sở hữu
         if (feedback.user.toString() !== req.user.id) {
-            return res.status(403).json({ message: "Bạn không có quyền sửa phản hồi này" });
+            return res.status(403).json({ message: 'Bạn không có quyền sửa phản hồi này' });
         }
 
-        feedback.rating = rating;
-        feedback.comment = comment;
+        // Cập nhật các trường
+        if (rating !== undefined) feedback.rating = rating;
+        if (comment !== undefined) feedback.comment = comment;
         feedback.staff = staff || null;
 
+        // Lưu phản hồi đã cập nhật
         const updatedFeedback = await feedback.save();
         res.status(200).json(updatedFeedback);
     } catch (error) {
-        console.error("Lỗi khi cập nhật phản hồi:", error.message);
-        res.status(500).json({ message: "Lỗi server" });
+        console.error('Lỗi khi cập nhật phản hồi:', error.message);
+        res.status(500).json({ message: 'Lỗi server' });
     }
 };
 
 exports.deleteFeedback = async (req, res) => {
     try {
-        const { id } = req.params;
+        const { id } = req.params; // feedbackId từ đường dẫn
 
+        // Tìm phản hồi theo feedbackId
         const feedback = await Feedback.findById(id);
         if (!feedback) {
-            return res.status(404).json({ message: "Không tìm thấy phản hồi" });
+            return res.status(404).json({ message: 'Không tìm thấy phản hồi' });
         }
 
-        // Kiểm tra quyền
+        // Kiểm tra quyền sở hữu
         if (feedback.user.toString() !== req.user.id) {
-            return res.status(403).json({ message: "Bạn không có quyền xóa phản hồi này" });
+            return res.status(403).json({ message: 'Bạn không có quyền xóa phản hồi này' });
         }
 
-        await feedback.remove();
-        res.status(200).json({ message: "Xóa phản hồi thành công" });
+        // Xóa phản hồi
+        await Feedback.deleteOne({ _id: id }); // Sử dụng deleteOne thay cho remove
+        res.status(200).json({ message: 'Xóa phản hồi thành công' });
     } catch (error) {
-        console.error("Lỗi khi xóa phản hồi:", error.message);
-        res.status(500).json({ message: "Lỗi server" });
+        console.error('Lỗi khi xóa phản hồi:', error.message);
+        res.status(500).json({ message: 'Lỗi server' });
     }
 };
