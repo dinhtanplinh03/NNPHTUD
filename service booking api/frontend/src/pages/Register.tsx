@@ -2,6 +2,16 @@
 import { useState } from "react";
 import axios from "axios";
 
+const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "0.75rem",
+    marginBottom: "1rem",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    fontSize: "1rem",
+    outline: "none"
+};
+
 function Register() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -29,8 +39,16 @@ function Register() {
     };
 
     return (
-        <div style={{ padding: "2rem" }}>
-            <h2>Đăng ký</h2>
+        <div style={{
+            padding: "2rem",
+            maxWidth: "400px",
+            margin: "2rem auto",
+            borderRadius: "10px",
+            backgroundColor: "#f7f9fc",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+            fontFamily: "Segoe UI, sans-serif"
+        }}>
+            <h2 style={{ textAlign: "center", color: "#333", marginBottom: "1.5rem" }}>Đăng ký tài khoản</h2>
             <form onSubmit={handleRegister}>
                 <input
                     type="text"
@@ -38,29 +56,52 @@ function Register() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
-                /><br />
+                    style={inputStyle}
+                />
                 <input
                     type="email"
                     placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                /><br />
+                    style={inputStyle}
+                />
                 <input
                     type="tel"
                     placeholder="Số điện thoại"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required
-                /><br />
+                    style={inputStyle}
+                />
                 <input
                     type="password"
                     placeholder="Mật khẩu"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                /><br />
-                <button type="submit">Đăng ký</button>
+                    style={inputStyle}
+                />
+                <button
+                    type="submit"
+                    style={{
+                        width: "100%",
+                        padding: "0.75rem",
+                        backgroundColor: "#007bff",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        marginTop: "1rem",
+                        transition: "background-color 0.2s"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0056b3")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#007bff")}
+                >
+                    Đăng ký
+                </button>
             </form>
         </div>
     );

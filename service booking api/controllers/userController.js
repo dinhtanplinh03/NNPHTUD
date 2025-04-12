@@ -74,8 +74,15 @@ exports.login = async (req, res) => {
             { expiresIn: '1d' }
         );
 
+        // Trả về đầy đủ thông tin người dùng
         res.status(200).json({
-            user: { id: user._id, email: user.email, role: user.role },
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+            },
             token,
         });
     } catch (error) {
@@ -104,10 +111,19 @@ exports.getUserById = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
     try {
-        const result = await userService.updateUser(req.params.id, req.body);
-        res.status(200).json(result);
+        const userId = req.params.id;
+        const updates = req.body;
+
+        // Kiểm tra xem người dùng có tồn tại không
+        const user = await User.findByIdAndUpdate(userId, updates, { new: true });
+        if (!user) {
+            return res.status(404).json({ message: "Không tìm thấy người dùng" });
+        }
+
+        res.status(200).json(user);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        console.error("Lỗi khi cập nhật thông tin người dùng:", err.message);
+        res.status(500).json({ message: "Lỗi server" });
     }
 };
 

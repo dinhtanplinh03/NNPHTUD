@@ -12,6 +12,15 @@ type Staff = {
     name: string;
 };
 
+const inputStyle: React.CSSProperties = {
+    padding: "0.75rem",
+    border: "1px solid #ccc",
+    borderRadius: "6px",
+    fontSize: "1rem",
+    width: "100%",
+    outline: "none"
+};
+
 const Booking = () => {
     const navigate = useNavigate();
     const [services, setServices] = useState<Service[]>([]);
@@ -103,28 +112,39 @@ const Booking = () => {
     };
 
     return (
-        <div style={{ maxWidth: "600px", margin: "2rem auto" }}>
-            <h2>Đặt lịch dịch vụ</h2>
+        <div style={{
+            maxWidth: "600px",
+            margin: "2rem auto",
+            padding: "2rem",
+            backgroundColor: "#f7f9fc",
+            borderRadius: "10px",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+            fontFamily: "Segoe UI, sans-serif"
+        }}>
+            <h2 style={{ textAlign: "center", color: "#333", marginBottom: "1.5rem" }}>Đặt lịch dịch vụ</h2>
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
                 <input
-                    name="date"
                     type="date"
+                    name="date"
                     value={formData.date}
                     onChange={handleChange}
                     required
+                    style={inputStyle}
                 />
                 <input
-                    name="time"
                     type="time"
+                    name="time"
                     value={formData.time}
                     onChange={handleChange}
                     required
+                    style={inputStyle}
                 />
                 <select
                     name="serviceId"
                     value={formData.serviceId}
                     onChange={handleChange}
                     required
+                    style={inputStyle}
                 >
                     <option value="">-- Chọn dịch vụ --</option>
                     {services.map((service) => (
@@ -138,6 +158,7 @@ const Booking = () => {
                     value={formData.staffId}
                     onChange={handleChange}
                     required
+                    style={inputStyle}
                 >
                     <option value="">-- Chọn nhân viên --</option>
                     {staffs.map((staff) => (
@@ -151,8 +172,27 @@ const Booking = () => {
                     placeholder="Ghi chú (nếu có)"
                     value={formData.note}
                     onChange={handleChange}
+                    rows={4}
+                    style={{ ...inputStyle, resize: "vertical" }}
                 ></textarea>
-                <button type="submit">Xác nhận đặt lịch</button>
+                <button
+                    type="submit"
+                    style={{
+                        padding: "0.75rem",
+                        backgroundColor: "#007bff",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        fontSize: "1rem",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        transition: "background-color 0.2s"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0056b3")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#007bff")}
+                >
+                    Xác nhận đặt lịch
+                </button>
             </form>
         </div>
     );

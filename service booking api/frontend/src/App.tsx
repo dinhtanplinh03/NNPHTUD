@@ -15,6 +15,7 @@ import ManageCategories from "./pages/admin/ManageCategories";
 import Payment from "./pages/Payment";
 import Category from "./pages/Category";
 import ManageStaff from "./pages/admin/ManageStaff";
+import ProtectedRoute from "./compoments/ProtectedRoute"; // Import ProtectedRoute
 
 export interface User {
   _id: string;
@@ -22,6 +23,7 @@ export interface User {
   email: string;
   role: string;
 }
+
 function App() {
   const [user, setUser] = useState<User | null>(null);
 
@@ -34,6 +36,7 @@ function App() {
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setUser(null);
     window.location.href = "/"; // hoặc dùng useNavigate nếu cần
   };
@@ -96,14 +99,58 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/history" element={<BookingHistory />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<ManageUsers />} />
-          <Route path="/admin/services" element={<ManageServices />} />
-          <Route path="/admin/bookings" element={<ManageBookings />} />
-          <Route path="/admin/categories" element={<ManageCategories />} />
+
+          {/* Bảo vệ các route admin */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute>
+                <ManageUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/services"
+            element={
+              <ProtectedRoute>
+                <ManageServices />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/bookings"
+            element={
+              <ProtectedRoute>
+                <ManageBookings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/categories"
+            element={
+              <ProtectedRoute>
+                <ManageCategories />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/staff"
+            element={
+              <ProtectedRoute>
+                <ManageStaff />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/payment" element={<Payment />} />
           <Route path="/category" element={<Category />} />
-          <Route path="/admin/staff" element={<ManageStaff />} />
         </Routes>
       </div>
     </BrowserRouter>
